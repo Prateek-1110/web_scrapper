@@ -1,0 +1,5 @@
+https://example.com
+https://httpbin.org/get
+https://go.dev
+https://github.com
+https://reddit.com
