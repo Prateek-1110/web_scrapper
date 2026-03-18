@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"scraper/fetcher"
+	"github.com/Prateek-1110/web_scrapper/fetcher"
 )
 
 func SaveJSON(results []fetcher.Result, filename string) error {

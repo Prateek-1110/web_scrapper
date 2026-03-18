@@ -8,11 +8,14 @@ import (
 )
 
 type Result struct {
-	URL      string
-	Title    string
-	Status   int
-	Attempts int
-	Error    string
+	URL         string `json:"url"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	StatusCode  int    `json:"status_code"`
+	LinkCount   int    `json:"link_count"`
+	ImageCount  int    `json:"image_count"`
+	Attempts    int    `json:"attempts"`
+	Error       string `json:"error,omitempty"`
 }
 
 func Fetch(url string, timeout time.Duration) Result {
@@ -27,8 +30,6 @@ func fetchWithRetry(url string, timeout time.Duration, maxAttempts int) Result {
 		if done {
 			return result
 		}
-
-		// Exponential backoff: wait 1s, 2s, 4s between retries
 		wait := time.Duration(1<<uint(attempt-1)) * time.Second
 		time.Sleep(wait)
 	}
@@ -47,9 +48,8 @@ func tryFetch(client *http.Client, url string, attempt int) (Result, bool) {
 	}
 	defer resp.Body.Close()
 
-	// Retry on server errors (5xx)
 	if resp.StatusCode >= 500 {
-		return Result{URL: url, Attempts: attempt, Status: resp.StatusCode, Error: "server error"}, false
+		return Result{URL: url, Attempts: attempt, StatusCode: resp.StatusCode, Error: "server error"}, false
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
@@ -57,12 +57,13 @@ func tryFetch(client *http.Client, url string, attempt int) (Result, bool) {
 		return Result{URL: url, Attempts: attempt, Error: err.Error()}, false
 	}
 
-	title := doc.Find("title").Text()
-
 	return Result{
-		URL:      url,
-		Title:    title,
-		Status:   resp.StatusCode,
-		Attempts: attempt,
+		URL:         url,
+		Title:       doc.Find("title").Text(),
+		Description: doc.Find(`meta[name="description"]`).AttrOr("content", ""),
+		StatusCode:  resp.StatusCode,
+		LinkCount:   doc.Find("a").Length(),
+		ImageCount:  doc.Find("img").Length(),
+		Attempts:    attempt,
 	}, true
 }
